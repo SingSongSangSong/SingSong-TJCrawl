@@ -24,7 +24,7 @@ class TJCrawlingService:
         self.db_user = os.getenv('DB_USER')
         self.db_password = os.getenv('DB_PASSWORD')
         self.db_database = os.getenv('DB_DATABASE')
-        self.db_port = 3306
+        self.db_port = 30007
 
     def setup_db_config(self):
         try:
@@ -44,7 +44,7 @@ class TJCrawlingService:
         logger.info("db 연결 성공")
         return db
 
-    def get_chosung(text):
+    def get_chosung(self, text):
         CHOSUNG_LIST = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ',
                         'ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
         result = []
