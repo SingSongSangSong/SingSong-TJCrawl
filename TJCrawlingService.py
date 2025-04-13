@@ -24,7 +24,7 @@ class TJCrawlingService:
         self.db_user = os.getenv('DB_USER')
         self.db_password = os.getenv('DB_PASSWORD')
         self.db_database = os.getenv('DB_DATABASE')
-        self.db_port = 30007
+        self.db_port = 3306
 
     def setup_db_config(self):
         try:
