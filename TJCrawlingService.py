@@ -235,7 +235,7 @@ class TJCrawlingService:
         """20개 단위로 멜론 데이터를 BeautifulSoup을 사용해 처리하고 업데이트합니다."""
         headers = {
             "User-Agent": random.choice([
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.110 Safari/537.36",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
                 "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0"
             ])
         }
@@ -308,28 +308,38 @@ class TJCrawlingService:
             # 해당 위치의 song_number와 일치 여부 확인
             song_number_element = soup.select_one("#BoardType1 > table > tbody > tr:nth-child(2) > td:nth-child(1)")
 
+            # 기본값으로 MR과 Live 설정
+            is_mr = False
+            is_live = False
+
             # song_number가 존재하고, 해당 요소의 텍스트와 일치하는지 확인
             if song_number_element and song_number_element.text.strip() == str(song_number):
                 logger.info(f"곡 번호 {song_number}와 일치하는 곡이 발견되었습니다.")
+                
+                # 곡 정보가 담긴 테이블을 찾고, 태그 확인
+                song_info = soup.find('table', {'class': 'board_type1'})
+                
+                # 태그 정보가 있는 경우에만 처리
+                if song_info:
+                    # "live"와 "mr" 태그가 있는지 확인
+                    live_tag = song_info.find_all('img', {'src': '/images/tjsong/live_icon.png'})
+                    mr_tag = song_info.find_all('img', {'src': '/images/tjsong/mr_icon.png'})
+                    
+                    is_live = len(live_tag) > 0
+                    is_mr = len(mr_tag) > 0
+                else:
+                    logger.warning(f"곡 번호 {song_number}의 테이블 정보를 찾을 수 없습니다. 기본값(MR=False, Live=False)으로 설정합니다.")
             else:
-                logger.info(f"곡 번호 {song_number}와 일치하는 곡을 찾을 수 없습니다.")
-                return None
+                logger.warning(f"곡 번호 {song_number}와 일치하는 곡을 찾을 수 없습니다. 기본값(MR=False, Live=False)으로 설정합니다.")
 
-            # 곡 정보가 담긴 테이블을 찾고, 태그 확인
-            song_info = soup.find('table', {'class': 'board_type1'})
-
-            # "live"와 "mr" 태그가 있는지 확인
-            live_tag = song_info.find_all('img', {'src': '/images/tjsong/live_icon.png'})
-            mr_tag = song_info.find_all('img', {'src': '/images/tjsong/mr_icon.png'})
-            
-            is_live = len(live_tag) > 0
-            is_mr = len(mr_tag) > 0
-
+            # 곡을 찾지 못하더라도 기본 정보는 반환
             return (song_number, song[1], song[2], is_mr, is_live)
+            
         except Exception as e:
             logger.error(f"MR 및 Live 정보 크롤링 중 오류 발생: {e}")
-            return None
-    
+            # 예외 발생 시에도 기본값으로 반환
+            return (song[0], song[1], song[2], False, False)
+
     def crawl_melon_song_id_and_album(self, songs):
         try:
             batch_size = 20
