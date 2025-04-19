@@ -171,7 +171,9 @@ class TJCrawlingService:
         try:
             return_songs = []
             for song in songs:
-                return_songs.append(self.crawl_one_mr_and_live(song))
+                result = self.crawl_one_mr_and_live(song)
+                if result:  # None이 아닌 경우에만 추가
+                    return_songs.append(result)
             logger.info(f"{len(songs)}개의 MR 및 Live 정보가 성공적으로 크롤링되었습니다.")
             return return_songs
         except Exception as e:
@@ -306,7 +308,7 @@ class TJCrawlingService:
                 logger.info(f"곡 번호 {song_number}와 일치하는 곡이 발견되었습니다.")
             else:
                 logger.info(f"곡 번호 {song_number}와 일치하는 곡을 찾을 수 없습니다.")
-                return
+                return None
 
             # 곡 정보가 담긴 테이블을 찾고, 태그 확인
             song_info = soup.find('table', {'class': 'board_type1'})
