@@ -9,7 +9,6 @@ import re
 import time
 from fuzzywuzzy import fuzz  # 유사도 측정
 import logging
-import pymysql
 
 # .env 파일 로드
 load_dotenv()
@@ -159,10 +158,16 @@ class TJCrawlingService:
                 return
             # MR 및 Live 정보 크롤링
             songs_include_mr_and_live = self.crawl_mr_and_live(new_songs_filtered)
-            #songs_include_mr_and_live = self.crawl_mr_and_live(new_songs)
-            self.save_to_db(songs_include_mr_and_live)
-            self.crawl_melon_song_id_and_album(new_songs_filtered)
-            self.crawl_genre_date_album(new_songs_filtered)
+            # 크롤링 결과가 있는 경우에만 저장 진행
+            if songs_include_mr_and_live and len(songs_include_mr_and_live) > 0:
+                self.save_to_db(songs_include_mr_and_live)
+                # 성공적으로 저장된 곡들에 대해서만 추가 정보 크롤링 진행
+                songs_to_process = [song for song in new_songs_filtered if any(s[0] == song[0] for s in songs_include_mr_and_live)]
+                if songs_to_process:
+                    self.crawl_melon_song_id_and_album(songs_to_process)
+                    self.crawl_genre_date_album(songs_to_process)
+            else:
+                logger.info("크롤링된 MR 및 Live 정보가 없어 저장을 진행하지 않습니다.")
         except Exception as e:
             logger.error(f"신곡 크롤링 및 저장 중 오류 발생: {e}")
             raise
@@ -174,7 +179,7 @@ class TJCrawlingService:
                 result = self.crawl_one_mr_and_live(song)
                 if result:  # None이 아닌 경우에만 추가
                     return_songs.append(result)
-            logger.info(f"{len(songs)}개의 MR 및 Live 정보가 성공적으로 크롤링되었습니다.")
+            logger.info(f"{len(return_songs)}개의 MR 및 Live 정보가 성공적으로 크롤링되었습니다.")
             return return_songs
         except Exception as e:
             logger.error(f"MR 및 Live 정보 크롤링 중 오류 발생: {e}")
