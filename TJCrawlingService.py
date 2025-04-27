@@ -118,29 +118,39 @@ class TJCrawlingService:
     def crawl_new_songs(self):
         try:
             now = datetime.now()
-            year = now.strftime("%Y")  # 현재 연도 (YYYY)
-            month = now.strftime("%m")  # 현재 달 (MM)
-            logger.info(f"{year}년 {month}월의 신곡을 크롤링 시작합니다.")
-            url = f"https://m.tjmedia.com/tjsong/song_monthNew.asp?YY={year}&MM={month}"
+            year_month = now.strftime("%Y%m")  # ex: 202504 (2025년 4월)
 
-            response = requests.get(url)
-            soup = BeautifulSoup(response.content, "html.parser")
+            url = "https://www.tjmedia.com/legacy/api/newSongOfMonth"
+            payload = {
+                "searchYm": year_month
+            }
 
-            # 크롤링할 데이터가 들어 있는 태그를 찾아서 반복문으로 처리
+            response = requests.post(url, data=payload)
+            response.raise_for_status()
+
+            data = response.json()
+
+            if data['resultCode'] != "99":
+                logger.info("데이터 조회 실패")
+                return []
+
             songs = []
-            for row in soup.select('tr')[1:]:  # 첫 번째 tr은 헤더이므로 제외
-                cols = row.find_all('td')
-                if len(cols) >= 3:
-                    song_number = cols[0].text.strip()
-                    song_name = cols[1].text.strip()
-                    artist_name = cols[2].text.strip()
-                    songs.append((song_number, song_name, artist_name))
-            
-            logger.info(f"{len(songs)}개의 신곡 정보가 성공적으로 크롤링되었습니다.")
-            logger.info(songs)
+
+            for item in data['resultData']['items']:
+                song_number = item['pro']
+                song_name = item['indexTitle']
+                artist_name = item['indexSong']
+
+                songs.append((song_number, song_name, artist_name))
+
+            logger.info(f"{year_month} 기준 {len(songs)}개 신곡 크롤링 완료")
+            for song in songs:
+                print(song)
+
             return songs
+
         except Exception as e:
-            logger.error(f"신곡 크롤링 중 오류 발생: {e}")
+            print(f"크롤링 중 오류 발생: {e}")
             raise
     
     def crawl_and_save_new_songs(self):
